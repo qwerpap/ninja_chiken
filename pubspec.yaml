@@ -12,6 +12,9 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   flutter_svg: ^2.2.0
+  audioplayers: ^6.5.0
+  shared_preferences: ^2.5.3
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
@@ -26,6 +29,7 @@ flutter:
     - assets/png/
     - assets/svg/
     - assets/fonts/
+    - assets/sounds/
 
   fonts:
     - family: Poppins

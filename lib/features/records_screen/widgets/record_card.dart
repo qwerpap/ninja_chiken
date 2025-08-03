@@ -4,9 +4,8 @@ import 'package:ninjachiken/theme/app_colors.dart';
 import 'package:ninjachiken/theme/app_text_styles.dart';
 
 class RecordCard extends StatelessWidget {
-  const RecordCard({super.key});
-
-  // final RecordModel data;
+  final RecordModel data;
+  const RecordCard({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -14,13 +13,13 @@ class RecordCard extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          'SCORE 2312',
+          'SCORE ${data.score}',
           style: AppTextStyles.poppins17s400w.copyWith(
             color: AppColors.whiteColor,
           ),
         ),
         Text(
-          '08/03/2025',
+          data.date,
           style: AppTextStyles.poppins17s400w.copyWith(
             color: AppColors.greyColor,
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ninjachiken/features/global/services/music_service.dart';
 import 'package:ninjachiken/features/global/widgets/custom_app_bar.dart';
 import 'package:ninjachiken/features/global/widgets/custom_divider.dart';
 import 'package:ninjachiken/features/global/widgets/gradiend_scaffold.dart';
@@ -15,6 +16,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool isSoundEnabled = true;
 
   @override
+  void initState() {
+    super.initState();
+    isSoundEnabled = MusicService().isEnabled;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GradientScaffold(
       body: SafeArea(
@@ -26,10 +33,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SettingsCard(
               title: 'Music',
               value: isSoundEnabled,
-              onChanged: (val) {
+              onChanged: (val) async {
                 setState(() {
                   isSoundEnabled = val;
                 });
+                if (val) {
+                  await MusicService().enable();
+                } else {
+                  await MusicService().disable();
+                }
               },
             ),
           ],

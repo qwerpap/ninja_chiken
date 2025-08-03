@@ -4,8 +4,8 @@ import 'package:ninjachiken/theme/app_colors.dart';
 class AppTextStyles {
   static const poppins47s600w = TextStyle(
     fontSize: 47,
+    fontWeight: FontWeight.w800,
     height: 1.2,
-    fontWeight: FontWeight.w600,
   );
 
   static const poppins45s500w = TextStyle(
@@ -15,14 +15,21 @@ class AppTextStyles {
     color: AppColors.whiteColor,
   );
 
-    static const poppins26s600w = TextStyle(
+  static const poppins26s600w = TextStyle(
     fontSize: 26,
     height: 1.2,
     fontWeight: FontWeight.w600,
     color: AppColors.whiteColor,
   );
 
-    static const poppins17s500w = TextStyle(
+  static const poppins24s400w = TextStyle(
+    fontSize: 24,
+    height: 1.2,
+    fontWeight: FontWeight.w400,
+    color: AppColors.white06Color,
+  );
+
+  static const poppins17s500w = TextStyle(
     fontSize: 17,
     height: 1.2,
     fontWeight: FontWeight.w500,
