@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ninjachiken/features/menu_screen/view/menu_screen.dart';
+import 'package:ninjachiken/features/splash_screen/view/splash_screen.dart';
 import 'package:ninjachiken/theme/theme.dart';
 
 void main() {
