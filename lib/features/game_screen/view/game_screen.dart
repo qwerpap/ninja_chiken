@@ -25,9 +25,18 @@ class _GameScreenState extends State<GameScreen> {
   late Timer eggSpawner;
   late Timer difficultyTimer;
 
+  bool isInvulnerable = false; // в состоянии игры
+
   final double chickenWidth = 128.0;
   final double eggWidth = 48.0;
   final double chickenBottomOffset = 80.0; // отступ снизу для курицы
+
+  Duration currentSpawnInterval = const Duration(milliseconds: 800);
+  final Duration minSpawnInterval = const Duration(milliseconds: 300);
+
+  final int maxEggsOnScreen = 20;
+  double? lastEggX; // чтобы не было повторной позиции
+  final int eggSpawnColumns = 8; // сколько "дорожек" для яиц
 
   @override
   void initState() {
@@ -52,15 +61,26 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _startEggSpawner() {
-    eggSpawner = Timer.periodic(const Duration(seconds: 1), (_) {
+    eggSpawner = Timer(currentSpawnInterval, () {
       _spawnEgg();
+      _startEggSpawner(); // запускаем снова
     });
   }
 
   void _startDifficultyTimer() {
     difficultyTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       setState(() {
-        eggFallSpeed += 0.005;
+        // ускоряем падение
+        eggFallSpeed += 0.0025;
+
+        // увеличиваем частоту спавна
+        final nextMs = currentSpawnInterval.inMilliseconds - 100;
+        if (nextMs > minSpawnInterval.inMilliseconds) {
+          currentSpawnInterval = Duration(milliseconds: nextMs);
+          // перезапускаем спавнер с новым интервалом
+          eggSpawner.cancel();
+          _startEggSpawner();
+        }
       });
     });
   }
@@ -73,13 +93,105 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _spawnEgg() {
-    final newEgg = Egg(
-      imagePath: ImageSource.eggDefault,
-      x: Random().nextDouble(),
-      y: 0,
-      isBroken: false,
-    );
-    setState(() => eggs.add(newEgg));
+    if (eggs.length >= maxEggsOnScreen) return;
+
+    final r = Random().nextDouble();
+    EggType type;
+    String imagePath;
+
+    if (r < 0.7) {
+      type = EggType.normal;
+      imagePath = ImageSource.eggDefault;
+    } else if (r < 0.85) {
+      type = EggType.silver;
+      imagePath = ImageSource.eggSliver;
+    } else if (r < 0.95) {
+      type = EggType.gold;
+      imagePath = ImageSource.eggGold;
+    } else {
+      type = EggType.cracked;
+      imagePath = ImageSource.eggBroken;
+    }
+
+    // Расчёт допустимого диапазона колонок, чтобы не спавнилось на краях
+    final screenWidth = MediaQuery.of(context).size.width;
+    final columnsToAvoid = (eggWidth / screenWidth * eggSpawnColumns).ceil();
+
+    final minColumn = columnsToAvoid;
+    final maxColumn = eggSpawnColumns - columnsToAvoid - 1;
+
+    if (minColumn > maxColumn) {
+      // Если яйцо слишком большое для сетки — просто не спавним
+      return;
+    }
+
+    double newX;
+    do {
+      final column = Random().nextInt(maxColumn - minColumn + 1) + minColumn;
+      newX = (column + 0.5) / eggSpawnColumns;
+    } while (newX == lastEggX);
+
+    lastEggX = newX;
+
+    final newEgg = Egg(x: newX, y: 0, eggType: type, imagePath: imagePath);
+
+    setState(() {
+      eggs.add(newEgg);
+    });
+  }
+
+  void _onEggCaught(Egg egg) {
+    switch (egg.eggType) {
+      case EggType.normal:
+        score += 1;
+        break;
+      case EggType.silver:
+        score += 5;
+        _slowDownEggs();
+        break;
+      case EggType.gold:
+        score += 10;
+        _makeInvulnerable();
+        break;
+      case EggType.cracked:
+        if (!isInvulnerable) {
+          lives--;
+          _showSplashEffect();
+          if (lives <= 0) _gameOver();
+        }
+        break;
+    }
+  }
+
+  void _slowDownEggs() {
+    final originalSpeed = eggFallSpeed;
+    setState(() {
+      eggFallSpeed = eggFallSpeed * 0.7;
+    });
+    Future.delayed(Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {
+          eggFallSpeed = originalSpeed;
+        });
+      }
+    });
+  }
+
+  void _makeInvulnerable() {
+    setState(() {
+      isInvulnerable = true;
+    });
+    Future.delayed(Duration(seconds: 1), () {
+      if (mounted) {
+        setState(() {
+          isInvulnerable = false;
+        });
+      }
+    });
+  }
+
+  void _showSplashEffect() {
+    // TODO: реализовать эффект брызг (можно анимацию, Overlay и т.п.)
   }
 
   void _updateEggs() {
@@ -90,22 +202,11 @@ class _GameScreenState extends State<GameScreen> {
     final chickenRight = chickenLeft + chickenWidth;
     final chickenTop = screenHeight - chickenBottomOffset - chickenWidth;
 
-    final floorY =
-        (screenHeight - eggWidth) /
-        screenHeight; // нормализованное положение пола для яйца
-
     List<Egg> eggsToRemove = [];
 
     for (var egg in List<Egg>.from(eggs)) {
-      if (!egg.isBroken) {
-        // Обычное яйцо падает
-        egg.y += eggFallSpeed;
-      } else {
-        // Разбитое яйцо не падает, застывает на месте
-        // Но можно, если нужно, немного "опустить" его ниже, например egg.y = floorY,
-        // чтобы визуально оно было на земле
-        egg.y = floorY;
-      }
+      // Все яйца падают вниз
+      egg.y += eggFallSpeed;
 
       final eggTopPx = egg.y * screenHeight;
       final eggLeftPx = egg.x * screenWidth;
@@ -113,57 +214,32 @@ class _GameScreenState extends State<GameScreen> {
 
       final isOverChicken =
           eggRightPx > chickenLeft && eggLeftPx < chickenRight;
+
+      final catchDelayPx = -50;
+      final eggBottomPx = eggTopPx + eggWidth + catchDelayPx;
+
       final isCatchZone =
-          eggTopPx + eggWidth >= chickenTop &&
+          eggBottomPx >= chickenTop &&
           eggTopPx <= screenHeight - chickenBottomOffset;
 
       if (isCatchZone && isOverChicken) {
-        if (egg.isBroken) {
-          // Поймали разбитое яйцо — теряем жизнь
-          lives--;
-          if (lives <= 0) {
-            _gameOver();
-            break;
-          }
-        } else {
-          // Поймали обычное яйцо — добавляем очки
-          score += 10;
-        }
+        // Яйцо поймано
+        _onEggCaught(egg);
         eggsToRemove.add(egg);
         continue;
       }
 
       final isOutside = eggTopPx > screenHeight;
-
       if (isOutside) {
-        if (!egg.isBroken) {
-          // Обычное яйцо упало мимо — становится разбитым и отнимаем жизнь
+        // Яйцо упало за экран — если это НЕ треснутое (cracked), теряем жизнь
+        if (egg.eggType != EggType.cracked && !isInvulnerable) {
           lives--;
           if (lives <= 0) {
             _gameOver();
-            break;
+            return;
           }
-
-          egg.isBroken = true;
-          egg.imagePath = 'assets/png/egg_broken.png';
-
-          // Зафиксируем яйцо на полу
-          egg.y = floorY;
-
-          // Через 0.5 секунды удаляем разбитое яйцо
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) {
-              setState(() {
-                eggs.remove(egg);
-              });
-            }
-          });
-
-          // Не удаляем сейчас, чтобы разбитое яйцо успело показаться
-        } else {
-          // Если уже разбитое яйцо вышло за экран — удаляем сразу
-          eggsToRemove.add(egg);
         }
+        eggsToRemove.add(egg);
       }
     }
 
