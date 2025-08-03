@@ -24,7 +24,7 @@ class MenuCard extends StatelessWidget {
           );
         },
         child: Transform.translate(
-          offset: const Offset(0, -8),
+          offset: const Offset(0, -5),
           child: Text(data.title, style: AppTextStyles.poppins45s500w),
         ),
       ),

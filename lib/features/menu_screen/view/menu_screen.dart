@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ninjachiken/constants/app_data.dart';
 import 'package:ninjachiken/constants/image_source.dart';
-import 'package:ninjachiken/features/game_screen/widgets/pause_button.dart';
 import 'package:ninjachiken/features/global/widgets/gradiend_scaffold.dart';
 import 'package:ninjachiken/features/menu_screen/widgets/menu_card.dart';
 import 'package:ninjachiken/features/menu_screen/widgets/privacy_policy.dart';
@@ -41,7 +40,6 @@ class MenuScreen extends StatelessWidget {
                 ],
               ),
             ),
-            PauseButton(onTap: () {}),
             PrivacyPolicy(onPressed: () {}),
             SizedBox(height: 20),
           ],

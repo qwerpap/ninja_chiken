@@ -24,8 +24,15 @@ class _RecordsScreenState extends State<RecordsScreen> {
 
   Future<void> _loadRecords() async {
     final loadedRecords = await RecordsService().getRecords();
+
+    loadedRecords.sort(
+      (a, b) => int.parse(b.score).compareTo(int.parse(a.score)),
+    );
+
+    final limitedRecords = loadedRecords.take(50).toList();
+
     setState(() {
-      records = loadedRecords;
+      records = limitedRecords;
     });
   }
 
@@ -37,6 +44,7 @@ class _RecordsScreenState extends State<RecordsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           children: [
             const CustomAppBar(title: 'Records'),
+            const SizedBox(height: 10),
             const CustomDivider(),
             const SizedBox(height: 16),
             ListView.separated(

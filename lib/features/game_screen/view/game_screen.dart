@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:ninjachiken/constants/image_source.dart';
 import 'package:ninjachiken/features/game_screen/data/models/egg.dart';
+import 'package:ninjachiken/features/game_screen/widgets/animated_chiken.dart';
 import 'package:ninjachiken/features/game_screen/widgets/pause_alert.dart';
 import 'package:ninjachiken/features/game_screen/widgets/game_over_alert.dart';
 import 'package:ninjachiken/features/game_screen/widgets/pause_button.dart';
 import 'package:ninjachiken/features/game_screen/widgets/row_lives.dart';
 import 'package:ninjachiken/features/game_screen/widgets/score_container.dart';
 import 'package:ninjachiken/features/global/services/record_service.dart';
-import 'package:ninjachiken/features/global/services/size_helper.dart';
 import 'package:ninjachiken/features/records_screen/data/models/record_model.dart';
 import 'package:ninjachiken/theme/app_colors.dart';
 
@@ -44,21 +44,27 @@ class _GameScreenState extends State<GameScreen> {
   Duration currentSpawnInterval = const Duration(milliseconds: 900);
   final Duration minSpawnInterval = const Duration(milliseconds: 300);
 
-  final int maxEggsOnScreen = 20;
+  final int maxEggsOnScreen = 15;
   double? lastEggX; // чтобы не было повторной позиции
-  final int eggSpawnColumns = 8; // сколько "дорожек" для яиц
+  final int eggSpawnColumns = 10; // сколько "дорожек" для яиц
 
   final AudioPlayer _audioPlayer = AudioPlayer();
 
   bool showSlowDownIndicator = false;
   bool showInvulnerableIndicator = false;
+  bool showPickAnimation = false;
+  bool isMoving = false;
+  bool isPicking = false;
+  double lastDx = 0.0; // хранит последнее направление по X
 
   @override
   void initState() {
     super.initState();
-    _startGameLoop();
-    _startEggSpawner();
-    _startDifficultyTimer();
+    Future.delayed(Duration(milliseconds: 100), () {
+      _startGameLoop();
+      _startEggSpawner();
+      _startDifficultyTimer();
+    });
   }
 
   @override
@@ -69,11 +75,18 @@ class _GameScreenState extends State<GameScreen> {
     super.dispose();
   }
 
+  //animated chiken
+  void _playPickAnimation() {
+    setState(() => showPickAnimation = true);
+    Future.delayed(const Duration(milliseconds: 300), () {
+      setState(() => showPickAnimation = false);
+    });
+  }
+
   Future<void> _playSound(String filename) async {
     try {
       await _audioPlayer.play(AssetSource('sounds/$filename'));
     } catch (e) {
-      // Ошибка при воспроизведении звука (можно вывести в консоль)
       print('Error playing sound: $e');
     }
   }
@@ -129,8 +142,8 @@ class _GameScreenState extends State<GameScreen> {
               _resumeGame();
             },
             onBackToMenu: () {
-              Navigator.pop(context); // закрыть диалог
-              Navigator.pop(context); // выйти в меню
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
           ),
     );
@@ -166,23 +179,27 @@ class _GameScreenState extends State<GameScreen> {
       imagePath = ImageSource.eggBroken;
     }
 
-    // Расчёт допустимого диапазона колонок, чтобы не спавнилось на краях
-    final screenWidth = MediaQuery.of(context).size.width;
-    final columnsToAvoid = (eggWidth / screenWidth * eggSpawnColumns).ceil();
+    final int columnsToAvoid =
+        1; // количество колонок, которые не хотим использовать по краям
 
-    final minColumn = columnsToAvoid;
-    final maxColumn = eggSpawnColumns - columnsToAvoid - 1;
+    final minColumn = columnsToAvoid; // начинаем с 1
+    final maxColumn =
+        eggSpawnColumns -
+        columnsToAvoid -
+        1; // заканчиваем на 6, если eggSpawnColumns=8
 
     if (minColumn > maxColumn) {
-      // Если яйцо слишком большое для сетки — просто не спавним
+      // Если диапазон колонок невозможен — не спавним
       return;
     }
 
     double newX;
+    int attempts = 0;
     do {
       final column = Random().nextInt(maxColumn - minColumn + 1) + minColumn;
       newX = (column + 0.5) / eggSpawnColumns;
-    } while (newX == lastEggX);
+      attempts++;
+    } while (newX == lastEggX && attempts < 10);
 
     lastEggX = newX;
 
@@ -194,6 +211,18 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _onEggCaught(Egg egg) {
+    setState(() {
+      isPicking = true;
+    });
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          isPicking = false;
+        });
+      }
+    });
+
     switch (egg.eggType) {
       case EggType.normal:
         score += 1;
@@ -305,10 +334,11 @@ class _GameScreenState extends State<GameScreen> {
       }
     }
 
-    if (eggsToRemove.isNotEmpty) {
-      setState(() {
-        eggs.removeWhere((egg) => eggsToRemove.contains(egg));
-      });
+    bool hasChanges = eggsToRemove.isNotEmpty;
+
+    if (hasChanges) {
+      eggs.removeWhere((egg) => eggsToRemove.contains(egg));
+      setState(() {}); // обновим UI только если были изменения
     }
   }
 
@@ -389,25 +419,40 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildChicken() {
-    if (isGameOver) return const SizedBox.shrink(); // 🟥 скрываем курицу
+    if (isGameOver) return const SizedBox.shrink();
+
     final screenWidth = MediaQuery.of(context).size.width;
+
     return Positioned(
       bottom: chickenBottomOffset,
       left: screenWidth * chickenX - chickenWidth / 2,
       child: GestureDetector(
         onHorizontalDragUpdate: (details) {
           setState(() {
-            chickenX += details.delta.dx / screenWidth;
+            final dx = details.delta.dx;
+            lastDx = dx;
+            isMoving = dx.abs() > 0.5;
+            chickenX += dx / screenWidth;
             chickenX = chickenX.clamp(0.0, 1.0);
+          });
+        },
+        onHorizontalDragEnd: (_) {
+          setState(() {
+            isMoving = false;
           });
         },
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Image.asset(
-              ImageSource.chiken,
-              width: chickenWidth,
-              height: chickenWidth,
+            Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()..rotateY(lastDx >= 0 ? 0 : pi),
+              child: AnimatedChicken(
+                isMoving: isMoving,
+                isPicking: isPicking,
+                width: chickenWidth,
+                height: chickenWidth,
+              ),
             ),
             if (showInvulnerableIndicator)
               Container(
@@ -432,7 +477,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildEggs() {
-    if (isGameOver) return const SizedBox.shrink(); // 🟥 скрываем яйца
+    if (isGameOver) return const SizedBox.shrink();
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     return Stack(
@@ -459,7 +504,6 @@ class _GameScreenState extends State<GameScreen> {
         children: [
           Image.asset('assets/png/game_bg.png', fit: BoxFit.cover),
 
-          // UI: AppBar
           Positioned(
             top: 20,
             left: 10,
@@ -479,6 +523,7 @@ class _GameScreenState extends State<GameScreen> {
 
           _buildEggs(),
           _buildChicken(),
+
           if (showSlowDownIndicator)
             Positioned(
               top: 120,

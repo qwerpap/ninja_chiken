@@ -29,6 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           children: [
             const CustomAppBar(title: 'Settings'),
+            const SizedBox(height: 10),
             const CustomDivider(),
             SettingsCard(
               title: 'Music',
