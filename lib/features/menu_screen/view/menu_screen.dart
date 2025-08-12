@@ -4,6 +4,7 @@ import 'package:ninjachiken/constants/image_source.dart';
 import 'package:ninjachiken/features/global/widgets/gradiend_scaffold.dart';
 import 'package:ninjachiken/features/menu_screen/widgets/menu_card.dart';
 import 'package:ninjachiken/features/menu_screen/widgets/privacy_policy.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MenuScreen extends StatelessWidget {
   const MenuScreen({super.key});
@@ -40,7 +41,17 @@ class MenuScreen extends StatelessWidget {
                 ],
               ),
             ),
-            PrivacyPolicy(onPressed: () {}),
+            PrivacyPolicy(
+              onPressed: () async {
+                const url = AppData.privacyLink;
+                final uri = Uri.parse(url);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } else {
+                  debugPrint('Could not launch $url');
+                }
+              },
+            ),
             SizedBox(height: 20),
           ],
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart'; // ✅ Импорт аудиоплеера
 import 'package:ninjachiken/constants/image_source.dart';
 
 class PauseButton extends StatefulWidget {
@@ -12,13 +13,23 @@ class PauseButton extends StatefulWidget {
 class _PauseButtonState extends State<PauseButton>
     with SingleTickerProviderStateMixin {
   bool _pressed = false;
+  final AudioPlayer _player = AudioPlayer(); // ✅ Создание экземпляра плеера
+
+  Future<void> _playClickSound() async {
+    try {
+      await _player.play(AssetSource('sounds/click_button.mp3'), volume: 1.0);
+    } catch (e) {
+      // Можно добавить лог или игнорировать
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) {
+      onTapUp: (_) async {
         setState(() => _pressed = false);
+        await _playClickSound(); // ✅ Воспроизведение звука
         widget.onTap();
       },
       onTapCancel: () => setState(() => _pressed = false),

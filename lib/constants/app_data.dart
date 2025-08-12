@@ -15,4 +15,7 @@ class AppData {
       screenBuilder: (context) => const SettingsScreen(),
     ),
   ];
+
+  static const String privacyLink =
+      'https://docs.google.com/document/d/1XSPad7Zlmpx0vhVAhYiPsFwl7zH-rq5aH7gS90cHBWE/edit?usp=sharing';
 }

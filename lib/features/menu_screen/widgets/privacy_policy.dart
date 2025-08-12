@@ -19,8 +19,7 @@ class PrivacyPolicy extends StatelessWidget {
             'Privacy Policy',
             style: AppTextStyles.poppins17s400w.copyWith(
               color: AppColors.greyColor,
-              decoration:
-                  TextDecoration.none, // отключаем стандартное подчёркивание
+              decoration: TextDecoration.none,
             ),
           ),
           Positioned(

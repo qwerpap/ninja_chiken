@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ninjachiken/features/global/services/sounds_effect_service.dart';
 
 class AnimatedTap extends StatefulWidget {
   final Widget child;
@@ -34,10 +35,15 @@ class _AnimatedTapState extends State<AnimatedTap>
     setState(() => _scale = 1.0);
   }
 
+  Future<void> _handleTap() async {
+    await SoundEffectService().playClick(); // 🔊 звук
+    widget.onTap();
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.onTap,
+      onTap: _handleTap,
       onTapDown: _onTapDown,
       onTapUp: _onTapUp,
       onTapCancel: _onTapCancel,

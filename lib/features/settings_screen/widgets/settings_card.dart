@@ -13,7 +13,7 @@ class SettingsCard extends StatelessWidget {
 
   final String title;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged; // Теперь может быть null
 
   @override
   Widget build(BuildContext context) {

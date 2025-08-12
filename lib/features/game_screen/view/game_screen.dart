@@ -1,460 +1,133 @@
-import 'dart:async';
 import 'dart:math';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:ninjachiken/constants/image_source.dart';
-import 'package:ninjachiken/features/game_screen/data/models/egg.dart';
-import 'package:ninjachiken/features/game_screen/widgets/animated_chiken.dart';
-import 'package:ninjachiken/features/game_screen/widgets/pause_alert.dart';
-import 'package:ninjachiken/features/game_screen/widgets/game_over_alert.dart';
-import 'package:ninjachiken/features/game_screen/widgets/pause_button.dart';
-import 'package:ninjachiken/features/game_screen/widgets/row_lives.dart';
-import 'package:ninjachiken/features/game_screen/widgets/score_container.dart';
-import 'package:ninjachiken/features/global/services/record_service.dart';
-import 'package:ninjachiken/features/records_screen/data/models/record_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ninjachiken/features/game_screen/bloc/game_bloc.dart';
+import 'package:ninjachiken/features/game_screen/bloc/game_event.dart';
+import 'package:ninjachiken/features/game_screen/bloc/game_state.dart';
+import 'package:ninjachiken/features/game_screen/widgets/widgets.dart';
+import 'package:ninjachiken/features/menu_screen/view/menu_screen.dart';
 import 'package:ninjachiken/theme/app_colors.dart';
 
-class GameScreen extends StatefulWidget {
+class GameScreen extends StatelessWidget {
   const GameScreen({super.key});
 
   @override
-  State<GameScreen> createState() => _GameScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => GameBloc()..add(StartGame()),
+      child: const GameScreenView(),
+    );
+  }
 }
 
-class _GameScreenState extends State<GameScreen> {
-  int lives = 3;
-  int score = 0;
-  double eggFallSpeed = 0.01;
-  double chickenX = 0.5; // от 0.0 до 1.0
-  List<Egg> eggs = [];
-  bool isPaused = false;
-  bool isGameOver = false;
+class GameScreenView extends StatefulWidget {
+  const GameScreenView({super.key});
 
-  late Timer gameLoop;
-  late Timer eggSpawner;
-  late Timer difficultyTimer;
+  @override
+  State<GameScreenView> createState() => _GameScreenViewState();
+}
 
-  bool isInvulnerable = false; // в состоянии игры
-
+class _GameScreenViewState extends State<GameScreenView> {
   final double chickenWidth = 128.0;
-  final double eggWidth = 48.0;
-  final double chickenBottomOffset = 80.0; // отступ снизу для курицы
-
-  Duration currentSpawnInterval = const Duration(milliseconds: 900);
-  final Duration minSpawnInterval = const Duration(milliseconds: 300);
-
-  final int maxEggsOnScreen = 15;
-  double? lastEggX; // чтобы не было повторной позиции
-  final int eggSpawnColumns = 10; // сколько "дорожек" для яиц
-
-  final AudioPlayer _audioPlayer = AudioPlayer();
-
-  bool showSlowDownIndicator = false;
-  bool showInvulnerableIndicator = false;
-  bool showPickAnimation = false;
-  bool isMoving = false;
-  bool isPicking = false;
-  double lastDx = 0.0; // хранит последнее направление по X
-
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(Duration(milliseconds: 100), () {
-      _startGameLoop();
-      _startEggSpawner();
-      _startDifficultyTimer();
-    });
-  }
-
-  @override
-  void dispose() {
-    gameLoop.cancel();
-    eggSpawner.cancel();
-    difficultyTimer.cancel();
-    super.dispose();
-  }
-
-  //animated chiken
-  void _playPickAnimation() {
-    setState(() => showPickAnimation = true);
-    Future.delayed(const Duration(milliseconds: 300), () {
-      setState(() => showPickAnimation = false);
-    });
-  }
-
-  Future<void> _playSound(String filename) async {
-    try {
-      await _audioPlayer.play(AssetSource('sounds/$filename'));
-    } catch (e) {
-      print('Error playing sound: $e');
-    }
-  }
-
-  void _startGameLoop() {
-    gameLoop = Timer.periodic(const Duration(milliseconds: 16), (_) {
-      _updateEggs();
-    });
-  }
-
-  void _startEggSpawner() {
-    eggSpawner = Timer(currentSpawnInterval, () {
-      _spawnEgg();
-      _startEggSpawner(); // запускаем снова
-    });
-  }
-
-  void _startDifficultyTimer() {
-    difficultyTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      setState(() {
-        // ускоряем падение
-        eggFallSpeed += 0.0025;
-
-        // увеличиваем частоту спавна
-        final nextMs = currentSpawnInterval.inMilliseconds - 100;
-        if (nextMs > minSpawnInterval.inMilliseconds) {
-          currentSpawnInterval = Duration(milliseconds: nextMs);
-          // перезапускаем спавнер с новым интервалом
-          eggSpawner.cancel();
-          _startEggSpawner();
-        }
-      });
-    });
-  }
+  final double eggWidth = 64.0;
+  final double chickenBottomOffset = 80.0;
+  bool _isGameOverDialogShown = false;
 
   void _showPauseDialog(BuildContext context) {
-    setState(() {
-      isPaused = true;
-    });
-
-    gameLoop.cancel();
-    eggSpawner.cancel();
-    difficultyTimer.cancel();
+    context.read<GameBloc>().add(PauseGame());
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder:
-          (context) => PauseAlert(
-            score: score,
+          (dialogContext) => PauseAlert(
+            score: context.read<GameBloc>().state.score,
             onResume: () {
-              Navigator.pop(context);
-              _resumeGame();
+              print(
+                'Current pause state: ${context.read<GameBloc>().state.isPaused}',
+              );
+              Navigator.pop(dialogContext);
+              context.read<GameBloc>().add(ResumeGame());
             },
             onBackToMenu: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const MenuScreen()),
+                (route) => false,
+              );
             },
           ),
     );
   }
 
-  void _resumeGame() {
-    setState(() {
-      isPaused = false;
-    });
-    _startGameLoop();
-    _startEggSpawner();
-    _startDifficultyTimer();
-  }
-
-  void _spawnEgg() {
-    if (eggs.length >= maxEggsOnScreen) return;
-
-    final r = Random().nextDouble();
-    EggType type;
-    String imagePath;
-
-    if (r < 0.7) {
-      type = EggType.normal;
-      imagePath = ImageSource.eggDefault;
-    } else if (r < 0.85) {
-      type = EggType.silver;
-      imagePath = ImageSource.eggSliver;
-    } else if (r < 0.95) {
-      type = EggType.gold;
-      imagePath = ImageSource.eggGold;
-    } else {
-      type = EggType.cracked;
-      imagePath = ImageSource.eggBroken;
-    }
-
-    final int columnsToAvoid =
-        1; // количество колонок, которые не хотим использовать по краям
-
-    final minColumn = columnsToAvoid; // начинаем с 1
-    final maxColumn =
-        eggSpawnColumns -
-        columnsToAvoid -
-        1; // заканчиваем на 6, если eggSpawnColumns=8
-
-    if (minColumn > maxColumn) {
-      // Если диапазон колонок невозможен — не спавним
-      return;
-    }
-
-    double newX;
-    int attempts = 0;
-    do {
-      final column = Random().nextInt(maxColumn - minColumn + 1) + minColumn;
-      newX = (column + 0.5) / eggSpawnColumns;
-      attempts++;
-    } while (newX == lastEggX && attempts < 10);
-
-    lastEggX = newX;
-
-    final newEgg = Egg(x: newX, y: 0, eggType: type, imagePath: imagePath);
-
-    setState(() {
-      eggs.add(newEgg);
-    });
-  }
-
-  void _onEggCaught(Egg egg) {
-    setState(() {
-      isPicking = true;
-    });
-
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) {
-        setState(() {
-          isPicking = false;
-        });
-      }
-    });
-
-    switch (egg.eggType) {
-      case EggType.normal:
-        score += 1;
-        _playSound('egg_catch.mp3');
-        break;
-      case EggType.silver:
-        score += 5;
-        _playSound('bonus.mp3');
-        _slowDownEggs();
-        break;
-      case EggType.gold:
-        score += 10;
-        _playSound('bonus.mp3');
-        _makeInvulnerable();
-        break;
-      case EggType.cracked:
-        if (!isInvulnerable) {
-          lives--;
-          _playSound('egg_breaks.mp3');
-          _showSplashEffect();
-          if (lives <= 0) _gameOver();
-        }
-        break;
-    }
-  }
-
-  void _slowDownEggs() {
-    final originalSpeed = eggFallSpeed;
-    setState(() {
-      eggFallSpeed = eggFallSpeed * 0.7;
-      showSlowDownIndicator = true; // Включаем индикатор
-    });
-    Future.delayed(Duration(milliseconds: 500), () {
-      if (mounted) {
-        setState(() {
-          eggFallSpeed = originalSpeed;
-          showSlowDownIndicator = false; // Выключаем индикатор
-        });
-      }
-    });
-  }
-
-  void _makeInvulnerable() {
-    setState(() {
-      isInvulnerable = true;
-      showInvulnerableIndicator = true; // Включаем индикатор
-    });
-    Future.delayed(Duration(seconds: 1), () {
-      if (mounted) {
-        setState(() {
-          isInvulnerable = false;
-          showInvulnerableIndicator = false; // Выключаем индикатор
-        });
-      }
-    });
-  }
-
-  void _showSplashEffect() {
-    // TODO: реализовать эффект брызг (можно анимацию, Overlay и т.п.)
-  }
-
-  void _updateEggs() {
-    if (isPaused) return;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    final chickenLeft = chickenX * screenWidth - chickenWidth / 2;
-    final chickenRight = chickenLeft + chickenWidth;
-    final chickenTop = screenHeight - chickenBottomOffset - chickenWidth;
-
-    List<Egg> eggsToRemove = [];
-
-    for (var egg in List<Egg>.from(eggs)) {
-      // Все яйца падают вниз
-      egg.y += eggFallSpeed;
-
-      final eggTopPx = egg.y * screenHeight;
-      final eggLeftPx = egg.x * screenWidth;
-      final eggRightPx = eggLeftPx + eggWidth;
-
-      final isOverChicken =
-          eggRightPx > chickenLeft && eggLeftPx < chickenRight;
-
-      final catchDelayPx = -50;
-      final eggBottomPx = eggTopPx + eggWidth + catchDelayPx;
-
-      final isCatchZone =
-          eggBottomPx >= chickenTop &&
-          eggTopPx <= screenHeight - chickenBottomOffset;
-
-      if (isCatchZone && isOverChicken) {
-        // Яйцо поймано
-        _onEggCaught(egg);
-        eggsToRemove.add(egg);
-        continue;
-      }
-
-      final isOutside = eggTopPx > screenHeight;
-      if (isOutside) {
-        // Яйцо упало за экран — если это НЕ треснутое (cracked), теряем жизнь
-        if (egg.eggType != EggType.cracked && !isInvulnerable) {
-          lives--;
-          if (lives <= 0) {
-            _gameOver();
-            return;
-          }
-        }
-        eggsToRemove.add(egg);
-      }
-    }
-
-    bool hasChanges = eggsToRemove.isNotEmpty;
-
-    if (hasChanges) {
-      eggs.removeWhere((egg) => eggsToRemove.contains(egg));
-      setState(() {}); // обновим UI только если были изменения
-    }
-  }
-
-  void _gameOver() async {
-    gameLoop.cancel();
-    eggSpawner.cancel();
-    difficultyTimer.cancel();
-
-    setState(() {
-      isGameOver = true; // 🟡 скрываем курицу и яйца
-    });
-
-    if (score == 0) {
-      // Если 0 очков — не сохраняем запись, просто показываем GameOver диалог
-      _showGameOverDialog();
-      return;
-    }
-
-    final now = DateTime.now();
-    final formattedDate = DateFormat('dd/MM/yyyy').format(now);
-
-    final record = RecordModel(score: score.toString(), date: formattedDate);
-
-    final records = await RecordsService().getRecords();
-
-    // Поиск существующей записи с таким же score
-    final existingIndex = records.indexWhere((r) => r.score == record.score);
-
-    if (existingIndex >= 0) {
-      // Обновляем дату у существующей записи
-      records[existingIndex] = RecordModel(
-        score: record.score,
-        date: formattedDate,
-      );
-      await RecordsService().setRecords(records);
-    } else {
-      // Добавляем новую запись
-      await RecordsService().addRecord(record);
-    }
-
-    _showGameOverDialog();
-  }
-
-  void _showGameOverDialog() {
-    showDialog(
+  Future<bool?> _showGameOverDialog(BuildContext context, int score) {
+    return showDialog<bool>(
       context: context,
       barrierDismissible: false,
       barrierColor: AppColors.blurAlertBg,
-      builder: (context) {
-        return GameOverAlert(
-          score: score,
-          onRestart: () {
-            Navigator.pop(context); // закрыть диалог
-            _restartGame(); // рестарт игры
-          },
-          onBackToMenu: () {
-            Navigator.pop(context); // закрыть диалог
-            Navigator.pop(context); // выйти в меню
-          },
-        );
-      },
+      builder:
+          (dialogContext) => GameOverAlert(
+            score: score,
+            onRestart: () {
+              Navigator.of(
+                dialogContext,
+              ).pop(true); // Возвращаем true при рестарте
+            },
+            onBackToMenu: () {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const MenuScreen()),
+                (route) => false,
+              );
+            },
+          ),
     );
   }
 
-  void _restartGame() {
-    setState(() {
-      lives = 3;
-      score = 0;
-      eggs.clear();
-      eggFallSpeed = 0.01;
-      chickenX = 0.5; // ← центр экрана
-      isGameOver = false; // ✅ восстанавливаем элементы
-    });
-
-    _startGameLoop();
-    _startEggSpawner();
-    _startDifficultyTimer();
-  }
-
-  Widget _buildChicken() {
-    if (isGameOver) return const SizedBox.shrink();
+  Widget _buildChicken(GameState state) {
+    if (state.isGameOver) return const SizedBox.shrink();
 
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Positioned(
       bottom: chickenBottomOffset,
-      left: screenWidth * chickenX - chickenWidth / 2,
+      left: screenWidth * state.chickenX - chickenWidth / 2,
       child: GestureDetector(
+        onHorizontalDragStart: (details) {
+          context.read<GameBloc>().add(
+            MoveChicken(0.01),
+          ); // минимальное движение для запуска анимации
+        },
+
         onHorizontalDragUpdate: (details) {
-          setState(() {
-            final dx = details.delta.dx;
-            lastDx = dx;
-            isMoving = dx.abs() > 0.5;
-            chickenX += dx / screenWidth;
-            chickenX = chickenX.clamp(0.0, 1.0);
-          });
+          final dx = details.delta.dx / screenWidth;
+          context.read<GameBloc>().add(MoveChicken(dx));
         },
+
         onHorizontalDragEnd: (_) {
-          setState(() {
-            isMoving = false;
-          });
+          context.read<GameBloc>().add(StopMoving());
         },
+
+        onTapDown: (details) {
+          final tapX = details.localPosition.dx;
+          final centerX = chickenWidth / 2;
+          final direction = tapX > centerX ? 0.02 : -0.02;
+          context.read<GameBloc>().add(MoveChicken(direction));
+        },
+
         child: Stack(
           alignment: Alignment.center,
           children: [
             Transform(
               alignment: Alignment.center,
-              transform: Matrix4.identity()..rotateY(lastDx >= 0 ? 0 : pi),
+              transform:
+                  Matrix4.identity()..rotateY(state.lastDx >= 0 ? 0 : pi),
               child: AnimatedChicken(
-                isMoving: isMoving,
-                isPicking: isPicking,
+                isMoving: state.isMoving,
+                isPicking: state.isPicking,
                 width: chickenWidth,
                 height: chickenWidth,
               ),
             ),
-            if (showInvulnerableIndicator)
+            if (state.showInvulnerableIndicator)
               Container(
                 width: chickenWidth + 20,
                 height: chickenWidth + 20,
@@ -476,13 +149,15 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget _buildEggs() {
-    if (isGameOver) return const SizedBox.shrink();
+  Widget _buildEggs(GameState state) {
+    if (state.isGameOver) return const SizedBox.shrink();
+
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+
     return Stack(
       children:
-          eggs.map((egg) {
+          state.eggs.map((egg) {
             return Positioned(
               top: screenHeight * egg.y,
               left: screenWidth * egg.x,
@@ -498,57 +173,80 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset('assets/png/game_bg.png', fit: BoxFit.cover),
+    return BlocConsumer<GameBloc, GameState>(
+      listener: (context, state) {
+        if (state.isGameOver && !_isGameOverDialogShown) {
+          _isGameOverDialogShown = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            final restart = await _showGameOverDialog(context, state.score);
+            _isGameOverDialogShown = false;
 
-          Positioned(
-            top: 20,
-            left: 10,
-            right: 10,
-            child: SizedBox(
-              height: 80,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  PauseButton(onTap: () => _showPauseDialog(context)),
-                  RowLives(lives: lives),
-                  ScoreContainer(score: score),
-                ],
-              ),
-            ),
-          ),
+            if (restart == true) {
+              context.read<GameBloc>().add(RestartGame());
+            }
+          });
+        }
+      },
+      builder: (context, state) {
+        return Scaffold(
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Фон
+              Image.asset('assets/png/game_bg.png', fit: BoxFit.cover),
 
-          _buildEggs(),
-          _buildChicken(),
-
-          if (showSlowDownIndicator)
-            Positioned(
-              top: 120,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.blueAccent.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'Slow down!',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+              // Верхняя панель с элементами управления
+              Positioned(
+                top: 20,
+                left: 10,
+                right: 10,
+                child: SizedBox(
+                  height: 80,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      PauseButton(onTap: () => _showPauseDialog(context)),
+                      RowLives(lives: state.lives),
+                      ScoreContainer(score: state.score),
+                    ],
                   ),
                 ),
               ),
-            ),
-        ],
-      ),
+
+              // Яйца
+              _buildEggs(state),
+
+              // Курица
+              _buildChicken(state),
+
+              // Индикатор замедления
+              if (state.showSlowDownIndicator)
+                Positioned(
+                  top: 120,
+                  right: 20,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent.withOpacity(0.7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Slow down!',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
