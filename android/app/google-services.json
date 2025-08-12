@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "965580926816",
+    "project_id": "ninjachiken-b151d",
+    "storage_bucket": "ninjachiken-b151d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:965580926816:android:77e4c9c35cfc585d767805",
+        "android_client_info": {
+          "package_name": "com.ninjachicken.eggroad"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDNtGfReyntl25HwxLoFNVhMWYwwZADHEc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
