@@ -4,14 +4,7 @@ import 'package:ninjachiken/features/global/services/size_helper.dart';
 import 'package:ninjachiken/features/global/widgets/pressable_container.dart';
 import 'package:ninjachiken/features/menu_screen/data/models/menu_model.dart';
 import 'package:ninjachiken/theme/app_text_styles.dart';
-
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/material.dart';
-import 'package:ninjachiken/constants/image_source.dart';
-import 'package:ninjachiken/features/global/services/size_helper.dart';
-import 'package:ninjachiken/features/global/widgets/pressable_container.dart';
-import 'package:ninjachiken/features/menu_screen/data/models/menu_model.dart';
-import 'package:ninjachiken/theme/app_text_styles.dart';
 
 class MenuCard extends StatelessWidget {
   const MenuCard({super.key, required this.data});
