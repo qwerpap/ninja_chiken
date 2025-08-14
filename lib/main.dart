@@ -6,18 +6,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ninjachiken/features/global/services/firebase_messaging_service.dart';
 import 'package:ninjachiken/features/global/services/local_notifications_service.dart';
 import 'package:ninjachiken/features/settings_screen/bloc/setting_bloc.dart';
-import 'package:ninjachiken/features/settings_screen/bloc/settings_event.dart';
 import 'package:ninjachiken/features/splash_screen/view/splash_screen.dart';
 import 'package:ninjachiken/firebase_options.dart';
 import 'package:ninjachiken/theme/theme.dart';
-
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // dotenv
-  await dotenv.load(fileName: ".env");
+  // dotenv - загружаем только если файл существует
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print('Warning: .env file not found, using default values');
+  }
 
   try {
     // Инициализируем SharedPreferences перед Firebase
@@ -30,8 +32,8 @@ void main() async {
     print('Firebase initialized successfully');
 
     await Supabase.initialize(
-      url: dotenv.env['SUPABASE_URL'] ?? '',
-      anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+      url: dotenv.env['SUPABASE_URL'] ?? 'https://your-default-supabase-url.supabase.co',
+      anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? 'your-default-anon-key',
     );
     print('Supabase initialized successfully');
 
@@ -84,7 +86,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
-      value: _settingsBloc..add(InitializeMusic()),
+      value: _settingsBloc,
       child: MaterialApp(theme: theme, home: const SplashScreen()),
     );
   }
