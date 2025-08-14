@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ninjachiken/features/menu_screen/view/menu_screen.dart';
 import 'package:ninjachiken/features/splash_screen/data/repositories/tracking_repository.dart';
 import 'package:ninjachiken/features/splash_screen/view/web_view_screen.dart';
 import 'package:ninjachiken/features/global/services/firebase_messaging_service.dart';
 import 'package:ninjachiken/features/global/services/local_notifications_service.dart';
+import 'package:ninjachiken/features/settings_screen/bloc/setting_bloc.dart';
+import 'package:ninjachiken/features/settings_screen/bloc/settings_event.dart';
 import 'package:firebase_app_installations/firebase_app_installations.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -37,10 +39,14 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _startInitialization() async {
     try {
-      // Шаг 1: Отобразить сплэш, а пуши и трекинг грузить в фоне
+      // Шаг 1: Инициализируем музыку через SettingsBloc
+      final settingsBloc = context.read<SettingsBloc>();
+      settingsBloc.add(InitializeMusic());
+
+      // Шаг 2: Отобразить сплэш, а пуши и трекинг грузить в фоне
       await _initPushNotifications();
 
-      // Шаг 2: Выполнить трекинг только после инициализации пушей
+      // Шаг 3: Выполнить трекинг только после инициализации пушей
       await _handleTracking();
     } catch (e, st) {
       debugPrint("Ошибка при инициализации: $e\n$st");

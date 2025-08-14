@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ninjachiken/features/global/services/music_service.dart';
 import 'package:ninjachiken/features/settings_screen/bloc/settgins_state.dart';
 import 'package:ninjachiken/features/settings_screen/bloc/settings_event.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   final MusicService _musicService = MusicService();
@@ -13,9 +12,10 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     on<LoadSettings>(_onLoadSettings);
     on<ToggleMusic>(_onToggleMusic);
 
-    // Обновлено тут:
+    // Слушаем изменения состояния плеера
     _musicService.player.onPlayerStateChanged.listen((playerState) {
       final isPlaying = playerState == PlayerState.playing;
+      print('Player state changed: $playerState, isPlaying: $isPlaying');
       if (state.isPlaying != isPlaying) {
         emit(state.copyWith(isPlaying: isPlaying));
       }
@@ -33,27 +33,20 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     emit(state.copyWith(isLoading: true));
 
     try {
-      // Загружаем настройки из SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      final isMusicEnabled = prefs.getBool('music_enabled') ?? true;
-
       // Настраиваем аудиоплеер
       await _musicService.player.setReleaseMode(ReleaseMode.loop);
       await _musicService.player.setVolume(0.8);
 
       emit(
         state.copyWith(
-          isMusicEnabled: isMusicEnabled,
+          isMusicEnabled: false,
           isInitialized: true,
           isLoading: false,
           error: null,
         ),
       );
 
-      // Если музыка включена, начинаем воспроизведение
-      if (isMusicEnabled) {
-        await _playMusic();
-      }
+      // Музыка всегда выключена при запуске
     } catch (e) {
       emit(
         state.copyWith(
@@ -74,10 +67,8 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     }
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final isMusicEnabled = prefs.getBool('music_enabled') ?? true;
-
-      emit(state.copyWith(isMusicEnabled: isMusicEnabled, error: null));
+      // Музыка всегда выключена, не загружаем из SharedPreferences
+      emit(state.copyWith(isMusicEnabled: false, error: null));
     } catch (e) {
       emit(state.copyWith(error: 'Failed to load settings: ${e.toString()}'));
     }
@@ -87,16 +78,17 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     ToggleMusic event,
     Emitter<SettingsState> emit,
   ) async {
+    print('ToggleMusic event: ${event.isEnabled}');
     emit(state.copyWith(isLoading: true));
 
     try {
-      // Сохраняем настройку в SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('music_enabled', event.isEnabled);
+      // Не сохраняем в SharedPreferences, только временно включаем/выключаем
 
       if (event.isEnabled) {
+        print('Enabling music...');
         await _playMusic();
       } else {
+        print('Disabling music...');
         await _stopMusic();
       }
 
@@ -119,8 +111,12 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
 
   Future<void> _playMusic() async {
     try {
-      if (state.isPlaying) return;
+      if (state.isPlaying) {
+        print('Music is already playing, skipping...');
+        return;
+      }
       await _musicService.play();
+      print('Music started playing');
     } catch (e) {
       emit(state.copyWith(error: 'Failed to play music: ${e.toString()}'));
     }
@@ -128,7 +124,12 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
 
   Future<void> _stopMusic() async {
     try {
+      if (!state.isPlaying) {
+        print('Music is not playing, nothing to stop');
+        return;
+      }
       await _musicService.stop();
+      print('Music stopped');
     } catch (e) {
       emit(state.copyWith(error: 'Failed to stop music: ${e.toString()}'));
     }

@@ -6,7 +6,7 @@ class SettingsState {
   final String? error;
 
   const SettingsState({
-    this.isMusicEnabled = true,
+    this.isMusicEnabled = false,
     this.isLoading = false,
     this.isInitialized = false,
     this.isPlaying = false,
