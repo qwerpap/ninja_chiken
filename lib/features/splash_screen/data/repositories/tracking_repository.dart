@@ -34,18 +34,16 @@ class TrackingRepository {
   Future<bool> sendTrackingData(Map<String, String> data) async {
     try {
       // Skip if notification token is not provided
-      if (data['notificationToken'] == null) {
+      if (data['firebase_token'] == null) {
         return true;
       }
 
       final supabase = Supabase.instance.client;
 
-      // EXAMPLE EXAMPLE EXAMPLE
-      // Предполагаем, что у вас есть таблица 'tracking_data' в Supabase
       await supabase.from('clients').insert({
-        'firebase_token': data['notificationToken'],
-        'app_name': 'flow',
-        'campaign': data['trackerToken'],
+        'firebase_token': data['firebase_token'],
+        'app_name': data['app_name'],
+        'campaign': data['campaign'],
       });
 
       return true;

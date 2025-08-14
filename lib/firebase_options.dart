@@ -47,19 +47,19 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDNtGfReyntl25HwxLoFNVhMWYwwZADHEc',
-    appId: '1:965580926816:android:77e4c9c35cfc585d767805',
-    messagingSenderId: '965580926816',
-    projectId: 'ninjachiken-b151d',
-    storageBucket: 'ninjachiken-b151d.firebasestorage.app',
+    apiKey: 'AIzaSyDdSji-TBuBBHc3R3AulxC0cTA_fns9Wxo',
+    appId: '1:572306661276:android:fcd474e752ec133178f259',
+    messagingSenderId: '572306661276',
+    projectId: 'flutter-flow-41998',
+    storageBucket: 'flutter-flow-41998.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCRXuVWPxmqT8Yn-mDHq1m3QMPW9rwTFag',
-    appId: '1:965580926816:ios:9e5a9e954176efe1767805',
-    messagingSenderId: '965580926816',
-    projectId: 'ninjachiken-b151d',
-    storageBucket: 'ninjachiken-b151d.firebasestorage.app',
+    apiKey: 'AIzaSyCXgf8q6FJnIVPoPS1svD0M9TG_DxX8dEA',
+    appId: '1:572306661276:ios:f754af217c7ae6c178f259',
+    messagingSenderId: '572306661276',
+    projectId: 'flutter-flow-41998',
+    storageBucket: 'flutter-flow-41998.firebasestorage.app',
     iosBundleId: 'com.ninjachicken.eggroad',
   );
 

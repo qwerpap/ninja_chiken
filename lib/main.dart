@@ -11,6 +11,8 @@ import 'package:ninjachiken/features/splash_screen/view/splash_screen.dart';
 import 'package:ninjachiken/firebase_options.dart';
 import 'package:ninjachiken/theme/theme.dart';
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -26,6 +28,12 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     print('Firebase initialized successfully');
+
+    await Supabase.initialize(
+      url: dotenv.env['SUPABASE_URL'] ?? '',
+      anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+    );
+    print('Supabase initialized successfully');
 
     // Инициализируем уведомления
     final localNotificationsService = LocalNotificationsService.instance();

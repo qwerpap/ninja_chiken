@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyCRXuVWPxmqT8Yn-mDHq1m3QMPW9rwTFag</string>
+	<string>AIzaSyCXgf8q6FJnIVPoPS1svD0M9TG_DxX8dEA</string>
 	<key>GCM_SENDER_ID</key>
-	<string>965580926816</string>
+	<string>572306661276</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.ninjachicken.eggroad</string>
 	<key>PROJECT_ID</key>
-	<string>ninjachiken-b151d</string>
+	<string>flutter-flow-41998</string>
 	<key>STORAGE_BUCKET</key>
-	<string>ninjachiken-b151d.firebasestorage.app</string>
+	<string>flutter-flow-41998.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:965580926816:ios:9e5a9e954176efe1767805</string>
+	<string>1:572306661276:ios:f754af217c7ae6c178f259</string>
 </dict>
 </plist>

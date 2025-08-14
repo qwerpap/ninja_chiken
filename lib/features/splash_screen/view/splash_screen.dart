@@ -17,8 +17,8 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  static const String trackerToken = "Fh6pP6";
-  static const String trackerBaseUrl = "https://LINKLINK";
+  static const String trackerToken = "gsMyXrFC";
+  static const String trackerBaseUrl = "https://dhgfgff.com/";
 
   final firebaseMessagingService = FirebaseMessagingService.instance();
   late final TrackingRepository _trackingRepository;
@@ -101,7 +101,6 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<Map<String, String>> _collectTrackingData() async {
     String installationId = "";
     String fcmToken = "";
-    String appName = "";
 
     try {
       installationId = await FirebaseInstallations.instance.getId();
@@ -112,33 +111,28 @@ class _SplashScreenState extends State<SplashScreen> {
     try {
       fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
 
-      if (fcmToken.isEmpty != false) {
+      if (fcmToken.isNotEmpty) {
         await FirebaseMessaging.instance.subscribeToTopic('initial');
       }
+
+      print('fcmToken: $fcmToken');
     } catch (e) {
       debugPrint("Ошибка получения FCM токена: $e");
     }
 
-    try {
-      final packageInfo = await PackageInfo.fromPlatform();
-      appName = packageInfo.appName;
-    } catch (e) {
-      debugPrint("Ошибка получения packageInfo: $e");
-    }
-
     return {
-      "analyticsId": installationId,
-      "notificationToken": fcmToken,
-      "appName": appName,
-      "trackerToken": trackerToken,
+      "aid": installationId,
+      "firebase_token": fcmToken,
+      "app_name": "ninjachiken",
+      "campaign": trackerToken,
     };
   }
 
   String _buildTrackingUrl(String baseUrl, Map<String, String> params) {
     final uri = Uri.parse(baseUrl).replace(
       queryParameters: {
-        "aid": params["analyticsId"] ?? '',
-        "fcm": params["notificationToken"] ?? '',
+        "aid": params["aid"] ?? '',
+        "fcm": params["firebase_token"] ?? '',
         "app_name": "ninjachiken",
       },
     );

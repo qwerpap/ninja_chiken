@@ -1,13 +1,32 @@
 {
   "project_info": {
-    "project_number": "965580926816",
-    "project_id": "ninjachiken-b151d",
-    "storage_bucket": "ninjachiken-b151d.firebasestorage.app"
+    "project_number": "572306661276",
+    "project_id": "flutter-flow-41998",
+    "storage_bucket": "flutter-flow-41998.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:965580926816:android:77e4c9c35cfc585d767805",
+        "mobilesdk_app_id": "1:572306661276:android:710cde793e43c89c78f259",
+        "android_client_info": {
+          "package_name": "com.flowpause.breathe"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDdSji-TBuBBHc3R3AulxC0cTA_fns9Wxo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:572306661276:android:fcd474e752ec133178f259",
         "android_client_info": {
           "package_name": "com.ninjachicken.eggroad"
         }
@@ -15,7 +34,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDNtGfReyntl25HwxLoFNVhMWYwwZADHEc"
+          "current_key": "AIzaSyDdSji-TBuBBHc3R3AulxC0cTA_fns9Wxo"
         }
       ],
       "services": {
