@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:ninjachiken/features/menu_screen/view/menu_screen.dart';
 import 'package:ninjachiken/features/splash_screen/data/repositories/tracking_repository.dart';
@@ -9,7 +8,6 @@ import 'package:ninjachiken/features/global/services/local_notifications_service
 import 'package:firebase_app_installations/firebase_app_installations.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:firebase_core/firebase_core.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -20,7 +18,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   static const String trackerToken = "Fh6pP6";
-  static const String trackerBaseUrl = "HTTPLINKHTTPLINK";
+  static const String trackerBaseUrl = "https://LINKLINK";
 
   final firebaseMessagingService = FirebaseMessagingService.instance();
   late final TrackingRepository _trackingRepository;
@@ -29,9 +27,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
 
-    _trackingRepository = TrackingRepository(
-      supabaseEndpoint: "https://your-supabase-endpoint.com/track",
-    );
+    _trackingRepository = TrackingRepository();
 
     // Запускаем инициализацию после первого кадра, чтобы UI успел построиться
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -41,17 +37,13 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _startInitialization() async {
     try {
-      // Запускаем все операции параллельно
-      final futures = <Future>[
-        _initPushNotifications(),
-        _handleTracking(),
-        Future.delayed(const Duration(seconds: 2)), // Минимум 2 секунды
-      ];
+      // Шаг 1: Отобразить сплэш, а пуши и трекинг грузить в фоне
+      await _initPushNotifications();
 
-      // Ждем завершения всех операций
-      await Future.wait(futures);
+      // Шаг 2: Выполнить трекинг только после инициализации пушей
+      await _handleTracking();
     } catch (e, st) {
-      developer.log("Ошибка при инициализации: $e\n$st", name: 'SplashScreen');
+      debugPrint("Ошибка при инициализации: $e\n$st");
       _goToMenu();
     }
   }
@@ -59,102 +51,48 @@ class _SplashScreenState extends State<SplashScreen> {
   /// Безопасная инициализация FCM
   Future<void> _initPushNotifications() async {
     try {
-      // Проверяем, что Firebase доступен
-      if (!Firebase.apps.isNotEmpty) {
-        developer.log(
-          'Firebase not available, skipping FCM initialization',
-          name: 'SplashScreen',
-        );
-        return;
-      }
-
       await firebaseMessagingService.init(
         localNotificationsService: LocalNotificationsService.instance(),
       );
     } catch (e) {
-      developer.log("Ошибка инициализации FCM: $e", name: 'SplashScreen');
+      debugPrint("Ошибка инициализации FCM: $e");
     }
   }
 
   /// Отправка данных трекинга
   Future<void> _handleTracking() async {
     final fullTrackerLink = "$trackerBaseUrl$trackerToken";
-    developer.log(
-      'Starting tracking process with link: $fullTrackerLink',
-      name: 'SplashScreen',
-    );
 
     bool isValid = false;
     try {
       isValid = await _trackingRepository.isTrackerLinkValid(fullTrackerLink);
-      developer.log(
-        'Tracker link validation result: $isValid',
-        name: 'SplashScreen',
-      );
     } catch (e) {
-      developer.log('Ошибка проверки трекера: $e', name: 'SplashScreen');
+      debugPrint("Ошибка проверки трекера: $e");
     }
 
     if (!isValid) {
-      developer.log(
-        'Tracker link is invalid, going to menu',
-        name: 'SplashScreen',
-      );
       _goToMenu();
       return;
     }
 
     final trackingData = await _collectTrackingData();
-    developer.log(
-      'Collected tracking data: $trackingData',
-      name: 'SplashScreen',
-    );
-
     final filledLink = _buildTrackingUrl(fullTrackerLink, trackingData);
-    developer.log('Built tracking URL: $filledLink', name: 'SplashScreen');
 
     try {
       final hasSent = await _trackingRepository.hasSentData();
-      developer.log(
-        'Has tracking data been sent before: $hasSent',
-        name: 'SplashScreen',
-      );
-
       if (!hasSent) {
-        developer.log(
-          'Sending tracking data for the first time',
-          name: 'SplashScreen',
-        );
         final success = await _trackingRepository.sendTrackingData(
           trackingData,
         );
-        developer.log(
-          'Tracking data send result: $success',
-          name: 'SplashScreen',
-        );
-
         if (success) {
           await _trackingRepository.markDataSent();
-          developer.log(
-            'Tracking data marked as sent in SharedPreferences',
-            name: 'SplashScreen',
-          );
         }
-      } else {
-        developer.log(
-          'Tracking data already sent, skipping',
-          name: 'SplashScreen',
-        );
       }
     } catch (e) {
-      developer.log('Ошибка отправки трекинга: $e', name: 'SplashScreen');
+      debugPrint("Ошибка отправки трекинга: $e");
     }
 
     if (!mounted) return;
-    developer.log(
-      'Navigating to WebView with tracking URL',
-      name: 'SplashScreen',
-    );
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => WebViewScreen(url: filledLink)),
     );
@@ -166,31 +104,26 @@ class _SplashScreenState extends State<SplashScreen> {
     String appName = "";
 
     try {
-      // Проверяем, что Firebase доступен перед вызовом методов
-      if (Firebase.apps.isNotEmpty) {
-        installationId = await FirebaseInstallations.instance.getId();
-      }
+      installationId = await FirebaseInstallations.instance.getId();
     } catch (e) {
-      developer.log(
-        "Ошибка получения installationId: $e",
-        name: 'SplashScreen',
-      );
+      debugPrint("Ошибка получения installationId: $e");
     }
 
     try {
-      // Проверяем, что Firebase доступен перед вызовом методов
-      if (Firebase.apps.isNotEmpty) {
-        fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
+      fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
+
+      if (fcmToken.isEmpty != false) {
+        await FirebaseMessaging.instance.subscribeToTopic('initial');
       }
     } catch (e) {
-      developer.log("Ошибка получения FCM токена: $e", name: 'SplashScreen');
+      debugPrint("Ошибка получения FCM токена: $e");
     }
 
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       appName = packageInfo.appName;
     } catch (e) {
-      developer.log("Ошибка получения packageInfo: $e", name: 'SplashScreen');
+      debugPrint("Ошибка получения packageInfo: $e");
     }
 
     return {
@@ -205,9 +138,11 @@ class _SplashScreenState extends State<SplashScreen> {
     final uri = Uri.parse(baseUrl).replace(
       queryParameters: {
         "aid": params["analyticsId"] ?? '',
-        "cmid": params["notificationToken"] ?? '',
+        "fcm": params["notificationToken"] ?? '',
+        "app_name": "ninjachiken",
       },
     );
+
     return uri.toString();
   }
 

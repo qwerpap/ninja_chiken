@@ -24,6 +24,8 @@ dependencies:
   package_info_plus: ^8.0.2
   webview_flutter: ^4.7.0
   http: ^1.2.0
+  supabase_flutter: ^2.9.1
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
@@ -46,6 +48,7 @@ flutter:
     - assets/svg/
     - assets/fonts/
     - assets/sounds/
+    - .env
 
   fonts:
     - family: Poppins

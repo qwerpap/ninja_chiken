@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ninjachiken/features/splash_screen/view/web_view_app_bar.dart';
+import 'package:ninjachiken/features/splash_screen/widgets/web_view_app_bar.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class WebViewScreen extends StatefulWidget {

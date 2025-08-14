@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ninjachiken/features/global/services/firebase_messaging_service.dart';
 import 'package:ninjachiken/features/global/services/local_notifications_service.dart';
@@ -13,12 +14,17 @@ import 'package:ninjachiken/theme/theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // dotenv
+  await dotenv.load(fileName: ".env");
+
   try {
     // Инициализируем SharedPreferences перед Firebase
     await SharedPreferences.getInstance();
 
     // Инициализируем Firebase
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     print('Firebase initialized successfully');
 
     // Инициализируем уведомления
@@ -37,7 +43,6 @@ void main() async {
       print('Error initializing Firebase messaging service: $e');
       // Продолжаем работу приложения даже если FCM не инициализирован
     }
-
   } catch (e) {
     print('Error during app initialization: $e');
     // Продолжаем работу приложения даже если Firebase не инициализирован
