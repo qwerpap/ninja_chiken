@@ -12,6 +12,18 @@ android {
     namespace = "com.ninjachicken.eggroad"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
+    
+    // Исключаем проблемные файлы audioplayers
+    packagingOptions {
+        exclude("META-INF/DEPENDENCIES")
+        exclude("META-INF/LICENSE")
+        exclude("META-INF/LICENSE.txt")
+        exclude("META-INF/license.txt")
+        exclude("META-INF/NOTICE")
+        exclude("META-INF/NOTICE.txt")
+        exclude("META-INF/notice.txt")
+        exclude("META-INF/ASL2.0")
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
