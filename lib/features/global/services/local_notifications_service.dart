@@ -29,7 +29,7 @@ class LocalNotificationsService {
   //Windows-specific initialization settings
   final _windowsInitializationSettings = const WindowsInitializationSettings(
     appName: 'Ninja Chiken',
-    appUserModelId: 'com.example.ninjachiken',
+    appUserModelId: 'com.ninjachicken.eggroad',
     guid: '12345678-1234-1234-1234-123456789012',
   );
 
